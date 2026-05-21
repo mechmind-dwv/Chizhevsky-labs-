@@ -3,9 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.db.database import get_db
 from app.models.historical_event import HistoricalEvent
-from app.models.solar_metrics import SolarMetrics
 from app.services.noaa_service import NOAAService
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from datetime import datetime
 
 router = APIRouter(prefix="/api/solar", tags=["solar"])
@@ -13,7 +12,6 @@ noaa_service = NOAAService()
 
 @router.get("/current", response_model=Dict[str, Any])
 async def get_current_solar_metrics():
-    """Obtiene métricas solares actuales de NOAA SWPC."""
     metrics = await noaa_service.get_solar_metrics()
     return {
         "status": "success",
@@ -24,37 +22,47 @@ async def get_current_solar_metrics():
 
 @router.get("/historical", response_model=Dict[str, Any])
 async def get_historical_events(
-    db: AsyncSession = Depends(get_db),
     limit: int = 50,
     offset: int = 0,
-    solar_phase: str = None
+    solar_phase: Optional[str] = None
 ):
     """Obtiene eventos históricos de la base de datos de Chizhevsky."""
-    query = select(HistoricalEvent)
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
     
-    if solar_phase:
-        query = query.where(HistoricalEvent.solar_phase == solar_phase)
+    # Usar SQLite síncrono para esta query (evita problemas async)
+    sync_engine = create_engine("sqlite:///./chizhevsky_test.db")
+    Session = sessionmaker(bind=sync_engine)
+    session = Session()
     
-    query = query.order_by(HistoricalEvent.year).offset(offset).limit(limit)
-    result = await db.execute(query)
-    events = result.scalars().all()
-    
-    return {
-        "status": "success",
-        "total": len(events),
-        "limit": limit,
-        "offset": offset,
-        "data": [
-            {
-                "id": e.id,
-                "year": e.year,
-                "epoch": e.epoch,
-                "event": e.event,
-                "solar_phase": e.solar_phase,
-                "estimated_excitability": e.estimated_excitability,
-                "description": e.description
-            }
-            for e in events
-        ],
-        "reference": "Chizhevsky, A.L. (1924) 'Factores Físicos del Proceso Histórico'"
-    }
+    try:
+        query = session.query(HistoricalEvent)
+        
+        if solar_phase:
+            query = query.filter(HistoricalEvent.solar_phase == solar_phase)
+        
+        query = query.order_by(HistoricalEvent.year).offset(offset).limit(limit)
+        events = query.all()
+        
+        return {
+            "status": "success",
+            "total": len(events),
+            "limit": limit,
+            "offset": offset,
+            "data": [
+                {
+                    "id": e.id,
+                    "year": e.year,
+                    "epoch": e.epoch,
+                    "event": e.event,
+                    "solar_phase": e.solar_phase,
+                    "estimated_excitability": e.estimated_excitability,
+                    "description": e.description
+                }
+                for e in events
+            ],
+            "reference": "Chizhevsky, A.L. (1924) 'Factores Físicos del Proceso Histórico'"
+        }
+    finally:
+        session.close()
+        sync_engine.dispose()

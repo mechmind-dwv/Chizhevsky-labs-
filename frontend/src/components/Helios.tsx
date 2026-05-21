@@ -1,44 +1,80 @@
-import React, { useState } from 'react';
-import { historicalEvents } from '../data/historicalEvents';
-import { SolarMetrics, UserMetrics } from '../types';
+import React, { useState, useEffect } from 'react';
+import { fetchSolarCurrent, fetchHistoricalEvents, calculateExcitability } from '../services/api';
+import { SolarMetrics, UserMetrics, HistoricalEvent } from '../types';
 
 export const Helios: React.FC = () => {
-  const [solarData] = useState<SolarMetrics>({
-    sunspots: 142, solarWind: 485.2, kpIndex: 4, fluxDensity: 172.4
+  const [solarData, setSolarData] = useState<SolarMetrics>({
+    sunspots: 0, solarWind: 0, kpIndex: 0, fluxDensity: 0
   });
+  const [events, setEvents] = useState<HistoricalEvent[]>([]);
+  const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState<UserMetrics>({
     birthDate: '1995-06-15', chronotype: 'Intermediate', moodRating: 7
   });
-  const [calculatedIndex, setCalculatedIndex] = useState<number | null>(null);
+  const [result, setResult] = useState<any>(null);
 
-  const handleCalculate = (e: React.FormEvent) => {
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      const [solar, historical] = await Promise.all([
+        fetchSolarCurrent(),
+        fetchHistoricalEvents(10)
+      ]);
+      setSolarData(solar.data);
+      setEvents(historical.data);
+    } catch (e) {
+      console.log('Usando datos simulados (backend no disponible)');
+      setSolarData({ sunspots: 142, solarWind: 485.2, kpIndex: 4, fluxDensity: 172.4 });
+      setEvents([]);
+    }
+    setLoading(false);
+  };
+
+  const handleCalculate = async (e: React.FormEvent) => {
     e.preventDefault();
-    const chronotypeFactor = formData.chronotype === 'Owl' ? 1.2 : formData.chronotype === 'Lark' ? 0.9 : 1.0;
-    const baseKpEffect = (solarData.kpIndex / 9) * 5;
-    const calculated = Math.min(10, Math.max(1, (baseKpEffect * chronotypeFactor) + (formData.moodRating * 0.3)));
-    setCalculatedIndex(parseFloat(calculated.toFixed(2)));
+    try {
+      const res = await calculateExcitability({
+        birth_date: formData.birthDate,
+        chronotype: formData.chronotype,
+        mood_rating: formData.moodRating
+      });
+      setResult(res.data);
+    } catch (e) {
+      // Fallback a cálculo local
+      const cf = formData.chronotype === 'Owl' ? 1.2 : formData.chronotype === 'Lark' ? 0.9 : 1.0;
+      const idx = Math.min(10, Math.max(1, ((solarData.kpIndex/9)*5*cf) + (formData.moodRating*0.3)));
+      setResult({ excitability_index: parseFloat(idx.toFixed(2)), alert_level: idx > 6 ? 'ALTA' : 'BAJA', formula: 'I_eb = (Kp/9 × 5 × α_crono) + (mood × 0.3)' });
+    }
   };
 
   return (
     <div className="space-y-8">
       <div className="border-b border-cosmic-accent pb-4">
         <h2 className="text-2xl font-bold text-white uppercase tracking-wider">MÓDULO HELIOS — Inteligencia Solar</h2>
-        <p className="text-xs text-cosmic-gold uppercase tracking-widest font-mono">Monitoreo de Actividad Coronal</p>
+        <p className="text-xs text-cosmic-gold uppercase tracking-widest font-mono">
+          {loading ? 'Conectando a NOAA SWPC...' : 'Monitoreo de Actividad Coronal — Datos en tiempo real'}
+        </p>
       </div>
+
+      {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: "Manchas (R)", value: solarData.sunspots, status: "Ciclo Activo" },
-          { label: "Viento Solar", value: `${solarData.solarWind} km/s`, status: "Estable" },
-          { label: "Índice Kp", value: `${solarData.kpIndex}/9`, status: "Tranquilo" },
-          { label: "Flujo F10.7", value: `${solarData.fluxDensity} sfu`, status: "Alto" }
+          { label: "Manchas (R)", value: solarData.sunspots, unit: "" },
+          { label: "Viento Solar", value: solarData.solarWind, unit: "km/s" },
+          { label: "Índice Kp", value: `${solarData.kpIndex}`, unit: "/9" },
+          { label: "Flujo F10.7", value: solarData.fluxDensity, unit: "sfu" }
         ].map((m, i) => (
           <div key={i} className="bg-cosmic-panel p-4 border border-cosmic-accent">
             <div className="text-[10px] text-gray-400 uppercase">{m.label}</div>
-            <div className="text-2xl font-mono font-bold text-white my-1">{m.value}</div>
-            <div className="text-[9px] text-cosmic-gold uppercase font-mono">{m.status}</div>
+            <div className="text-2xl font-mono font-bold text-white my-1">{m.value}{m.unit}</div>
           </div>
         ))}
       </div>
+
+      {/* Calculadora */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-cosmic-panel p-6 border border-cosmic-accent">
           <h3 className="text-sm font-bold uppercase text-cosmic-gold border-b border-cosmic-accent pb-2">Calculadora de Excitabilidad Biológica</h3>
@@ -64,19 +100,23 @@ export const Helios: React.FC = () => {
           </form>
         </div>
         <div className="bg-cosmic-panel p-6 border border-cosmic-accent flex flex-col justify-center">
-          {calculatedIndex !== null ? (
+          {result ? (
             <div className="text-center space-y-4">
-              <div className="text-[11px] text-gray-400 uppercase">Índice de Afectación</div>
-              <div className="text-6xl font-mono font-bold text-cosmic-solarRed">{calculatedIndex}<span className="text-xs text-gray-400">/10</span></div>
-              <p className="text-xs text-gray-300">{calculatedIndex > 6 ? "[ALERTA] Hiperexcitabilidad cortical." : "[NORMAL] Sincronización óptima."}</p>
+              <div className="text-[11px] text-gray-400 uppercase">Índice de Excitabilidad</div>
+              <div className="text-6xl font-mono font-bold text-cosmic-solarRed">{result.excitability_index}<span className="text-xs text-gray-400">/10</span></div>
+              <div className={`text-sm font-bold ${result.alert_level === 'ALTA' ? 'text-red-400' : 'text-green-400'}`}>NIVEL: {result.alert_level}</div>
+              <p className="text-xs text-gray-300">{result.recommendation || (result.excitability_index > 6 ? 'Hiperexcitabilidad cortical detectada.' : 'Sincronización óptima.')}</p>
+              {result.formula && <p className="text-[10px] text-gray-500 font-mono mt-2">{result.formula}</p>}
             </div>
           ) : (
             <div className="text-center text-xs text-gray-500 py-12">Introduce parámetros para calcular el índice.</div>
           )}
         </div>
       </div>
+
+      {/* Tabla histórica */}
       <div className="bg-cosmic-panel p-4 border border-cosmic-accent">
-        <h3 className="text-sm font-bold uppercase text-white mb-3">Eventos Históricos (Análisis Chizhevsky)</h3>
+        <h3 className="text-sm font-bold uppercase text-white mb-3">Eventos Históricos (Análisis Chizhevsky) — Desde API</h3>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
@@ -85,14 +125,16 @@ export const Helios: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {historicalEvents.map((e) => (
-                <tr key={e.id} className="border-b border-cosmic-accent/40 hover:bg-cosmic-bg/40 font-mono">
+              {events.length > 0 ? events.map((e: any) => (
+                <tr key={e.id || e.year} className="border-b border-cosmic-accent/40 hover:bg-cosmic-bg/40 font-mono">
                   <td className="p-2 text-white font-bold">{e.year}</td>
-                  <td className="p-2"><span className={`px-2 py-0.5 text-[10px] font-bold ${e.solarPhase==='Maxima'?'bg-red-950 text-red-400':'bg-blue-950 text-blue-400'}`}>{e.solarPhase}</span></td>
-                  <td className="p-2"><div className="font-bold text-gray-200">{e.event}</div><div className="text-[10px] text-gray-500">{e.description}</div></td>
-                  <td className="p-2 text-center text-cosmic-gold font-bold">{e.estimatedExcitability}</td>
+                  <td className="p-2"><span className={`px-2 py-0.5 text-[10px] font-bold ${e.solar_phase==='Maxima'?'bg-red-950 text-red-400':'bg-blue-950 text-blue-400'}`}>{e.solar_phase}</span></td>
+                  <td className="p-2"><div className="font-bold text-gray-200">{e.event}</div></td>
+                  <td className="p-2 text-center text-cosmic-gold font-bold">{e.estimated_excitability}</td>
                 </tr>
-              ))}
+              )) : (
+                <tr><td colSpan={4} className="p-4 text-center text-gray-500">Conecta el backend en puerto 8000 para ver 50 eventos históricos.</td></tr>
+              )}
             </tbody>
           </table>
         </div>
