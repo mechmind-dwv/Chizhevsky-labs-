@@ -1,0 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  background-color: #1a1a2e;
+  color: #e2e8f0;
+  font-family: 'Space Mono', monospace;
+  overflow-x: hidden;
+}
+
+/* Custom glow animations for cosmic vectors */
+.solar-glow {
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+}
+.ion-pulse {
+  animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .7; transform: scale(1.02); }
+}
