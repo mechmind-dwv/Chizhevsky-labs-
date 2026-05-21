@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  timescaledb:
+    image: timescale/timescaledb:latest-pg15
+    container_name: chizhevsky-timescaledb
+    environment:
+      - POSTGRES_USER=chizhevsky_admin
+      - POSTGRES_PASSWORD=cosmic_radiation_secret_2026
+      - POSTGRES_DB=chizhevsky_intelligence
+    ports:
+      - "5432:5432"
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data
+      - ./backend/scripts/init_timescaledb.sql:/docker-entrypoint-initdb.d/01_init.sql
+    networks:
+      - chizhevsky-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chizhevsky_admin -d chizhevsky_intelligence"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: chizhevsky-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://chizhevsky_admin:cosmic_radiation_secret_2026@timescaledb:5432/chizhevsky_intelligence
+      - DATABASE_URL_SYNC=postgresql://chizhevsky_admin:cosmic_radiation_secret_2026@timescaledb:5432/chizhevsky_intelligence
+      - NOAA_SWPC_URL=https://services.swpc.noaa.gov/json/
+      - CORS_ORIGINS=["http://localhost:5173","http://localhost:3000"]
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    networks:
+      - chizhevsky-network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    image: node:20-alpine
+    container_name: chizhevsky-frontend
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "5173:5173"
+    command: sh -c "npm install && npm run dev -- --host"
+    environment:
+      - VITE_API_URL=http://backend:8000
+      - VITE_ENABLE_MOCK_DATA=false
+    networks:
+      - chizhevsky-network
+
+volumes:
+  timescaledb_data:
+
+networks:
+  chizhevsky-network:
+    driver: bridge
