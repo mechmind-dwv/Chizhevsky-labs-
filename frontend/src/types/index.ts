@@ -4,13 +4,13 @@ export interface HistoricalEvent {
   epoch: string;
   event: string;
   solarPhase: 'Minima' | 'Ascending' | 'Maxima' | 'Descending';
-  estimatedExcitability: number;
+  estimatedExcitability: number; // Scale 1-10 Chizhevsky Factor
   description: string;
 }
 
 export interface SolarMetrics {
   sunspots: number;
-  solarWind: number;
+  solarWind: number; // km/s
   kpIndex: number;
   fluxDensity: number;
 }

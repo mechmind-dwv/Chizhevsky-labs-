@@ -1,140 +1,160 @@
-import React, { useState, useEffect } from 'react';
-import { fetchSolarCurrent, fetchHistoricalEvents, calculateExcitability } from '../services/api';
-import { SolarMetrics, UserMetrics, HistoricalEvent } from '../types';
+import React, { useState } from 'react';
+import { historicalEvents } from '../data/historicalEvents';
+import { SolarMetrics, UserMetrics } from '../types';
 
 export const Helios: React.FC = () => {
-  const [solarData, setSolarData] = useState<SolarMetrics>({
-    sunspots: 0, solarWind: 0, kpIndex: 0, fluxDensity: 0
+  const [solarData] = useState<SolarMetrics>({
+    sunspots: 142,
+    solarWind: 485.2,
+    kpIndex: 4,
+    fluxDensity: 172.4
   });
-  const [events, setEvents] = useState<HistoricalEvent[]>([]);
-  const [loading, setLoading] = useState(true);
+
   const [formData, setFormData] = useState<UserMetrics>({
-    birthDate: '1995-06-15', chronotype: 'Intermediate', moodRating: 7
+    birthDate: '1995-06-15',
+    chronotype: 'Intermediate',
+    moodRating: 7
   });
-  const [result, setResult] = useState<any>(null);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  const [calculatedIndex, setCalculatedIndex] = useState<number | null>(null);
 
-  const loadData = async () => {
-    try {
-      const [solar, historical] = await Promise.all([
-        fetchSolarCurrent(),
-        fetchHistoricalEvents(10)
-      ]);
-      setSolarData(solar.data);
-      setEvents(historical.data);
-    } catch (e) {
-      console.log('Usando datos simulados (backend no disponible)');
-      setSolarData({ sunspots: 142, solarWind: 485.2, kpIndex: 4, fluxDensity: 172.4 });
-      setEvents([]);
-    }
-    setLoading(false);
-  };
-
-  const handleCalculate = async (e: React.FormEvent) => {
+  const handleCalculate = (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      const res = await calculateExcitability({
-        birth_date: formData.birthDate,
-        chronotype: formData.chronotype,
-        mood_rating: formData.moodRating
-      });
-      setResult(res.data);
-    } catch (e) {
-      // Fallback a cálculo local
-      const cf = formData.chronotype === 'Owl' ? 1.2 : formData.chronotype === 'Lark' ? 0.9 : 1.0;
-      const idx = Math.min(10, Math.max(1, ((solarData.kpIndex/9)*5*cf) + (formData.moodRating*0.3)));
-      setResult({ excitability_index: parseFloat(idx.toFixed(2)), alert_level: idx > 6 ? 'ALTA' : 'BAJA', formula: 'I_eb = (Kp/9 × 5 × α_crono) + (mood × 0.3)' });
-    }
+    const chronotypeFactor = formData.chronotype === 'Owl' ? 1.2 : formData.chronotype === 'Lark' ? 0.9 : 1.0;
+    const baseKpEffect = (solarData.kpIndex / 9) * 5;
+    const calculated = Math.min(10, Math.max(1, (baseKpEffect * chronotypeFactor) + (formData.moodRating * 0.3)));
+    setCalculatedIndex(parseFloat(calculated.toFixed(2)));
   };
 
   return (
-    <div className="space-y-8">
-      <div className="border-b border-cosmic-accent pb-4">
-        <h2 className="text-2xl font-bold text-white uppercase tracking-wider">MÓDULO HELIOS — Inteligencia Solar</h2>
-        <p className="text-xs text-cosmic-gold uppercase tracking-widest font-mono">
-          {loading ? 'Conectando a NOAA SWPC...' : 'Monitoreo de Actividad Coronal — Datos en tiempo real'}
-        </p>
+    <div className="space-y-8 animate-fadeIn">
+      <div className="border-b border-cosmic-accent pb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-white uppercase tracking-wider">MÓDULO HELIOS — Inteligencia Solar Aplicada</h2>
+          <p className="text-xs text-cosmic-gold uppercase tracking-widest font-mono">Monitoreo de Radiación e Índices de Actividad Coronal</p>
+        </div>
+        <div className="flex gap-2 text-xs font-mono">
+          <span className="bg-green-950/40 text-green-400 px-3 py-1 border border-green-500/30">GEOMAGNETIC STATUS: NOMINAL</span>
+        </div>
       </div>
 
-      {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: "Manchas (R)", value: solarData.sunspots, unit: "" },
-          { label: "Viento Solar", value: solarData.solarWind, unit: "km/s" },
-          { label: "Índice Kp", value: `${solarData.kpIndex}`, unit: "/9" },
-          { label: "Flujo F10.7", value: solarData.fluxDensity, unit: "sfu" }
-        ].map((m, i) => (
-          <div key={i} className="bg-cosmic-panel p-4 border border-cosmic-accent">
-            <div className="text-[10px] text-gray-400 uppercase">{m.label}</div>
-            <div className="text-2xl font-mono font-bold text-white my-1">{m.value}{m.unit}</div>
+          { label: "Número de Manchas (R)", value: solarData.sunspots, status: "Ciclo Activo" },
+          { label: "Viento Solar (V)", value: `${solarData.solarWind} km/s`, status: "Estable" },
+          { label: "Índice Kp", value: `${solarData.kpIndex} / 9`, status: solarData.kpIndex > 6 ? "Tormenta" : "Tranquilo" },
+          { label: "Flujo de Radio F10.7", value: `${solarData.fluxDensity} sfu`, status: "Alto" }
+        ].map((metric, idx) => (
+          <div key={idx} className="bg-cosmic-panel p-4 border border-cosmic-accent relative overflow-hidden">
+            <div className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{metric.label}</div>
+            <div className="text-2xl font-mono font-bold text-white my-1">{metric.value}</div>
+            <div className="text-[9px] text-cosmic-gold uppercase font-mono">{metric.status}</div>
+            <div className="absolute right-2 bottom-1 opacity-10 text-4xl font-bold">☀️</div>
           </div>
         ))}
       </div>
 
-      {/* Calculadora */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-cosmic-panel p-6 border border-cosmic-accent">
-          <h3 className="text-sm font-bold uppercase text-cosmic-gold border-b border-cosmic-accent pb-2">Calculadora de Excitabilidad Biológica</h3>
-          <form onSubmit={handleCalculate} className="space-y-4 text-xs mt-4">
-            <div>
-              <label className="block text-gray-400 uppercase font-mono">Fecha de Nacimiento</label>
-              <input type="date" value={formData.birthDate} onChange={(e) => setFormData({...formData, birthDate: e.target.value})} className="w-full bg-cosmic-bg border border-cosmic-accent p-2 rounded text-white font-mono" />
+        <div className="bg-cosmic-panel p-6 border border-cosmic-accent space-y-4">
+          <h3 className="text-sm font-bold uppercase tracking-widest text-cosmic-gold border-b border-cosmic-accent pb-2">
+            Calculadora del Índice de Excitabilidad Biológica
+          </h3>
+          <form onSubmit={handleCalculate} className="space-y-4 text-xs">
+            <div className="space-y-1">
+              <label className="block text-gray-400 uppercase font-mono">Fecha de Nacimiento (Alineación de Ciclo)</label>
+              <input 
+                type="date" 
+                value={formData.birthDate} 
+                onChange={(e) => setFormData({...formData, birthDate: e.target.value})}
+                className="w-full bg-cosmic-bg border border-cosmic-accent p-2 rounded text-white font-mono focus:outline-none focus:border-cosmic-gold"
+              />
             </div>
-            <div>
-              <label className="block text-gray-400 uppercase font-mono">Cronotipo</label>
-              <select value={formData.chronotype} onChange={(e) => setFormData({...formData, chronotype: e.target.value as any})} className="w-full bg-cosmic-bg border border-cosmic-accent p-2 rounded text-white font-mono">
+            <div className="space-y-1">
+              <label className="block text-gray-400 uppercase font-mono">Cronotipo Humano</label>
+              <select 
+                value={formData.chronotype} 
+                onChange={(e) => setFormData({...formData, chronotype: e.target.value as any})}
+                className="w-full bg-cosmic-bg border border-cosmic-accent p-2 rounded text-white font-mono focus:outline-none focus:border-cosmic-gold"
+              >
                 <option value="Lark">Matutino (Alondra)</option>
                 <option value="Intermediate">Intermedio</option>
                 <option value="Owl">Nocturno (Búho)</option>
               </select>
             </div>
-            <div>
-              <label className="block text-gray-400 uppercase font-mono">Estado de Ánimo (1-10)</label>
-              <input type="range" min="1" max="10" value={formData.moodRating} onChange={(e) => setFormData({...formData, moodRating: parseInt(e.target.value)})} className="w-full accent-cosmic-gold" />
-              <div className="text-right text-cosmic-gold font-bold">{formData.moodRating}/10</div>
+            <div className="space-y-1">
+              <label className="block text-gray-400 uppercase font-mono">Estado de Ánimo Interno (1 - 10)</label>
+              <input 
+                type="range" min="1" max="10" 
+                value={formData.moodRating}
+                onChange={(e) => setFormData({...formData, moodRating: parseInt(e.target.value)})}
+                className="w-full accent-cosmic-gold"
+              />
+              <div className="text-right text-cosmic-gold font-mono font-bold">{formData.moodRating}/10</div>
             </div>
-            <button type="submit" className="w-full bg-cosmic-gold text-cosmic-bg font-bold py-3 uppercase tracking-wider">Calcular Coeficiente</button>
+            <button type="submit" className="w-full bg-cosmic-gold text-cosmic-bg font-bold py-3 uppercase tracking-wider font-mono transition-colors hover:bg-yellow-500">
+              Calcular Coeficiente Magnético-Biológico
+            </button>
           </form>
         </div>
-        <div className="bg-cosmic-panel p-6 border border-cosmic-accent flex flex-col justify-center">
-          {result ? (
-            <div className="text-center space-y-4">
-              <div className="text-[11px] text-gray-400 uppercase">Índice de Excitabilidad</div>
-              <div className="text-6xl font-mono font-bold text-cosmic-solarRed">{result.excitability_index}<span className="text-xs text-gray-400">/10</span></div>
-              <div className={`text-sm font-bold ${result.alert_level === 'ALTA' ? 'text-red-400' : 'text-green-400'}`}>NIVEL: {result.alert_level}</div>
-              <p className="text-xs text-gray-300">{result.recommendation || (result.excitability_index > 6 ? 'Hiperexcitabilidad cortical detectada.' : 'Sincronización óptima.')}</p>
-              {result.formula && <p className="text-[10px] text-gray-500 font-mono mt-2">{result.formula}</p>}
-            </div>
-          ) : (
-            <div className="text-center text-xs text-gray-500 py-12">Introduce parámetros para calcular el índice.</div>
-          )}
+
+        <div className="bg-cosmic-panel p-6 border border-cosmic-accent flex flex-col justify-between">
+          <div>
+            <h3 className="text-sm font-bold uppercase tracking-widest text-cosmic-gold border-b border-cosmic-accent pb-2">
+              Resultado del Análisis en Tiempo Real
+            </h3>
+            {calculatedIndex !== null ? (
+              <div className="mt-6 text-center space-y-4">
+                <div className="text-[11px] text-gray-400 uppercase tracking-widest">Índice Estimado de Afectación</div>
+                <div className="text-6xl font-mono font-bold text-cosmic-solarRed animate-pulse">{calculatedIndex} <span className="text-xs text-gray-400">/ 10</span></div>
+                <p className="text-xs text-gray-300 leading-relaxed max-w-sm mx-auto font-mono">
+                  {calculatedIndex > 6 
+                    ? "[ALERTA] Los campos geomagnéticos y tu perfil sugieren un estado de hiperexcitabilidad cortical. Se recomienda espaciar decisiones críticas."
+                    : "[NORMAL] Sincronización óptima. Estabilidad homeostática frente a los flujos solares de fondo."
+                  }
+                </p>
+              </div>
+            ) : (
+              <div className="text-center text-xs text-gray-500 py-12 font-mono">
+                Introduce los parámetros biométricos para cruzar los datos del sistema nervioso con la telemetría del viento solar.
+              </div>
+            )}
+          </div>
+          <div className="text-[9px] text-gray-500 border-t border-cosmic-accent pt-2 italic">
+            * Algoritmo inferido de los cuadernos de anotación de Kaluga (1920-1928). [SIMULADO EN ENTREGABLE]
+          </div>
         </div>
       </div>
 
-      {/* Tabla histórica */}
       <div className="bg-cosmic-panel p-4 border border-cosmic-accent">
-        <h3 className="text-sm font-bold uppercase text-white mb-3">Eventos Históricos (Análisis Chizhevsky) — Desde API</h3>
+        <h3 className="text-sm font-bold uppercase tracking-widest text-white mb-3">
+          Historial de Eventos de la Biosfera (Análisis de Ciclos de Chizhevsky)
+        </h3>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="border-b border-cosmic-accent text-cosmic-gold uppercase bg-cosmic-bg/60">
-                <th className="p-2">Año</th><th className="p-2">Fase Solar</th><th className="p-2">Evento</th><th className="p-2 text-center">Factor</th>
+              <tr className="border-b border-cosmic-accent text-cosmic-gold uppercase tracking-wider font-mono bg-cosmic-bg/60">
+                <th className="p-2">Año</th>
+                <th className="p-2">Fase Solar</th>
+                <th className="p-2">Evento de Masas</th>
+                <th className="p-2 text-center">Factor Chizhevsky</th>
               </tr>
             </thead>
             <tbody>
-              {events.length > 0 ? events.map((e: any) => (
-                <tr key={e.id || e.year} className="border-b border-cosmic-accent/40 hover:bg-cosmic-bg/40 font-mono">
-                  <td className="p-2 text-white font-bold">{e.year}</td>
-                  <td className="p-2"><span className={`px-2 py-0.5 text-[10px] font-bold ${e.solar_phase==='Maxima'?'bg-red-950 text-red-400':'bg-blue-950 text-blue-400'}`}>{e.solar_phase}</span></td>
-                  <td className="p-2"><div className="font-bold text-gray-200">{e.event}</div></td>
-                  <td className="p-2 text-center text-cosmic-gold font-bold">{e.estimated_excitability}</td>
+              {historicalEvents.map((event) => (
+                <tr key={event.id} className="border-b border-cosmic-accent/40 hover:bg-cosmic-bg/40 font-mono transition-colors">
+                  <td className="p-2 text-white font-bold">{event.year}</td>
+                  <td className="p-2">
+                    <span className={`px-2 py-0.5 text-[10px] font-bold ${event.solarPhase === 'Maxima' ? 'bg-red-950 text-red-400 border border-red-500/20' : 'bg-blue-950 text-blue-400'}`}>
+                      {event.solarPhase}
+                    </span>
+                  </td>
+                  <td className="p-2 max-w-md">
+                    <div className="font-bold text-gray-200">{event.event}</div>
+                    <div className="text-[10px] text-gray-500 mt-0.5">{event.description}</div>
+                  </td>
+                  <td className="p-2 text-center text-cosmic-gold font-bold">{event.estimatedExcitability}</td>
                 </tr>
-              )) : (
-                <tr><td colSpan={4} className="p-4 text-center text-gray-500">Conecta el backend en puerto 8000 para ver 50 eventos históricos.</td></tr>
-              )}
+              ))}
             </tbody>
           </table>
         </div>

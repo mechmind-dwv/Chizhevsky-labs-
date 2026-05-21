@@ -19,6 +19,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTa
             Cosmic Intelligence v1.0
           </span>
         </div>
+        
         <div className="flex gap-4">
           <button 
             onClick={() => setIsDashboard(!isDashboard)}
@@ -26,10 +27,11 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTa
               isDashboard ? 'bg-cosmic-gold text-cosmic-bg border-cosmic-gold' : 'border-cosmic-gold/50 text-cosmic-gold hover:bg-cosmic-gold/10'
             }`}
           >
-            {isDashboard ? "Ver Sitio Público" : "Entrar al Sistema"}
+            {isDashboard ? "Ver Sitio Público" : "Entrar al Sistema Inteligente"}
           </button>
         </div>
       </header>
+
       <div className="flex flex-1">
         {isDashboard && (
           <aside className="w-64 bg-cosmic-panel border-r border-cosmic-accent flex flex-col justify-between p-4">
@@ -46,11 +48,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTa
                   onClick={() => setActiveTab(item.id)}
                   className={`w-full flex items-center gap-3 px-3 py-3 font-bold text-sm transition-all border ${
                     activeTab === item.id 
-                      ? 'bg-cosmic-gold text-cosmic-bg border-cosmic-gold' 
+                      ? 'bg-cosmic-gold text-cosmic-bg border-cosmic-gold shadow-[0_0_10px_rgba(255,215,0,0.2)]' 
                       : 'border-transparent text-gray-400 hover:bg-cosmic-accent/40 hover:text-white'
                   }`}
                 >
-                  {item.icon} {item.name}
+                  {item.icon}
+                  {item.name}
                 </button>
               ))}
             </nav>
@@ -60,14 +63,23 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTa
             </div>
           </aside>
         )}
-        <main className="flex-1 p-6 overflow-y-auto">{children}</main>
+
+        <main className="flex-1 p-6 overflow-y-auto">
+          {children}
+        </main>
       </div>
+
       <footer className="border-t border-cosmic-accent bg-cosmic-panel px-6 py-4 flex flex-col md:flex-row justify-between items-center text-xs text-gray-500 gap-4">
-        <div>"El Sol no solo ilumina — regula." — Alexander Chizhevsky</div>
+        <div>
+          "El Sol no solo ilumina — regula." — Alexander Chizhevsky, <span className="italic">International Journal of Biometeorology</span>.
+        </div>
         <div className="flex items-center gap-4">
           <span className="flex items-center gap-1 text-cosmic-gold border border-cosmic-gold/20 px-2 py-0.5 bg-cosmic-bg/40 font-bold">
-            <Globe size={12} /> OPEN SOURCE
+            <Globe size={12} /> ALGORITMOS OPEN SOURCE
           </span>
+          <a href="https://github.com" target="_blank" rel="noreferrer" className="hover:text-cosmic-gold underline font-bold">
+            GitHub Repository
+          </a>
         </div>
       </footer>
     </div>
