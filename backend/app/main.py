@@ -6,6 +6,9 @@ from app.api.excitability import router as excitability_router
 from app.api.aerion import router as aerion_router
 from app.db.init_db import init_database
 from contextlib import asynccontextmanager
+ NASA DONKI API (datos reales)
+from app.api.nasa import router as nasa_router
+app.include_router(nasa_router)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
