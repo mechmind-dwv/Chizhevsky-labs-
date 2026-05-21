@@ -1,5 +1,5 @@
 import React from 'react';
-import { Compass, Sun, ShieldAlert, Zap, Globe } from 'lucide-react';
+import { Compass, Sun, ShieldAlert, Zap, Globe, LayoutDashboard } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -30,12 +30,14 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTa
           </button>
         </div>
       </header>
+
       <div className="flex flex-1">
         {isDashboard && (
           <aside className="w-64 bg-cosmic-panel border-r border-cosmic-accent flex flex-col justify-between p-4">
             <nav className="flex flex-col gap-2">
               <div className="text-[10px] text-gray-500 uppercase font-bold tracking-widest px-3 mb-2">Módulos Científicos</div>
               {[
+                { id: 'DASHBOARD', name: 'Dashboard NASA', icon: <LayoutDashboard size={18} /> },
                 { id: 'HELIOS', name: 'Helios (Sol)', icon: <Sun size={18} /> },
                 { id: 'AERION', name: 'Aerion (Iones)', icon: <Zap size={18} /> },
                 { id: 'ASTROVIR', name: 'Astrovir (Riesgo)', icon: <ShieldAlert size={18} /> },
@@ -46,7 +48,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTa
                   onClick={() => setActiveTab(item.id)}
                   className={`w-full flex items-center gap-3 px-3 py-3 font-bold text-sm transition-all border ${
                     activeTab === item.id 
-                      ? 'bg-cosmic-gold text-cosmic-bg border-cosmic-gold' 
+                      ? 'bg-cosmic-gold text-cosmic-bg border-cosmic-gold shadow-[0_0_10px_rgba(255,215,0,0.2)]' 
                       : 'border-transparent text-gray-400 hover:bg-cosmic-accent/40 hover:text-white'
                   }`}
                 >
@@ -60,14 +62,21 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTa
             </div>
           </aside>
         )}
-        <main className="flex-1 p-6 overflow-y-auto">{children}</main>
+
+        <main className="flex-1 p-6 overflow-y-auto">
+          {children}
+        </main>
       </div>
+
       <footer className="border-t border-cosmic-accent bg-cosmic-panel px-6 py-4 flex flex-col md:flex-row justify-between items-center text-xs text-gray-500 gap-4">
         <div>"El Sol no solo ilumina — regula." — Alexander Chizhevsky</div>
         <div className="flex items-center gap-4">
           <span className="flex items-center gap-1 text-cosmic-gold border border-cosmic-gold/20 px-2 py-0.5 bg-cosmic-bg/40 font-bold">
-            <Globe size={12} /> OPEN SOURCE
+            <Globe size={12} /> NASA DONKI + NOAA SWPC
           </span>
+          <a href="https://github.com/mechmind-dwv/chizhevsky-labs" target="_blank" rel="noreferrer" className="hover:text-cosmic-gold underline font-bold">
+            GitHub
+          </a>
         </div>
       </footer>
     </div>
