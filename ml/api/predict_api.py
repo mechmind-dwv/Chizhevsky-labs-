@@ -1,36 +1,40 @@
-"""
-API de Predicción ML para Chizhevsky Labs
-Expone el modelo entrenado como endpoint REST
-"""
-
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-import joblib
-import numpy as np
-import os
-import json
+import json, os, math
 
-app = FastAPI(
-    title="Chizhevsky Labs ML API",
-    description="Modelo de Predicción de Excitabilidad Biológica",
-    version="1.0.0"
-)
+app = FastAPI(title="Chizhevsky Labs ML API", version="1.0.0")
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Cargar modelo entrenado
+# Cargar modelo desde JSON
 model_dir = os.path.join(os.path.dirname(__file__), '..', 'models')
-model = joblib.load(os.path.join(model_dir, 'excitability_model.pkl'))
-scaler = joblib.load(os.path.join(model_dir, 'scaler.pkl'))
+with open(os.path.join(model_dir, 'excitability_model.json'), 'r') as f:
+    model_data = json.load(f)
 
-with open(os.path.join(model_dir, 'metrics.json'), 'r') as f:
-    metrics = json.load(f)
+class StandardScaler:
+    def __init__(self, mean, std):
+        self.mean = mean
+        self.std = std
+    
+    def transform(self, X):
+        return [[(row[i]-self.mean[i])/self.std[i] for i in range(len(row))] for row in X]
+
+class LinearRegressor:
+    def __init__(self, weights, bias):
+        self.weights = weights
+        self.bias = bias
+    
+    def predict(self, X):
+        return [max(1.0, min(10.0, sum(self.weights[j]*x[j] for j in range(len(x))) + self.bias)) for x in X]
+
+# Reconstruir objetos
+scaler_dict = model_data['scaler']
+scaler = StandardScaler(mean=scaler_dict['mean'], std=scaler_dict['std'])
+
+model_dict = model_data['model']
+model = LinearRegressor(weights=model_dict['weights'], bias=model_dict['bias'])
+
+metrics = model_data['metrics']
 
 class SolarInput(BaseModel):
     sunspots: int = Field(..., ge=0, le=300, example=142)
@@ -38,71 +42,32 @@ class SolarInput(BaseModel):
     kp_index: int = Field(..., ge=0, le=9, example=4)
     flux_density: float = Field(..., ge=50, le=300, example=172.4)
 
-class PredictionResponse(BaseModel):
-    predicted_excitability: float
-    confidence: str
-    input_data: dict
-    model_info: dict
-    interpretation: str
-
 @app.get("/")
 async def root():
-    return {
-        "name": "Chizhevsky Labs ML API",
-        "model": metrics['best_model'],
-        "r2_score": metrics['r2_score'],
-        "features": ["sunspots", "solar_wind", "kp_index", "flux_density"]
-    }
+    return {"name": "Chizhevsky Labs ML API", "model": model_data['model_type'], "r2": metrics['r2']}
 
-@app.post("/predict", response_model=PredictionResponse)
-async def predict_excitability(data: SolarInput):
-    """Predice el índice de excitabilidad biológica basado en datos solares."""
+@app.post("/predict")
+async def predict(data: SolarInput):
     try:
-        features = np.array([[
-            data.sunspots,
-            data.solar_wind,
-            data.kp_index,
-            data.flux_density
-        ]])
+        features = [[data.sunspots, data.solar_wind, data.kp_index, data.flux_density]]
+        scaled = scaler.transform(features)
+        pred = model.predict(scaled)[0]
+        pred = max(1.0, min(10.0, float(pred)))
         
-        features_scaled = scaler.transform(features)
-        prediction = model.predict(features_scaled)[0]
-        prediction = max(1.0, min(10.0, float(prediction)))
-        
-        # Interpretación
-        if prediction >= 8.0:
-            interpretation = "ALTA excitabilidad. Alta probabilidad de eventos de masas según Chizhevsky."
-            confidence = "Alta"
-        elif prediction >= 6.0:
-            interpretation = "MODERADA excitabilidad. Condiciones favorables para actividad social elevada."
-            confidence = "Media"
-        elif prediction >= 4.0:
-            interpretation = "BAJA excitabilidad. Periodo de estabilidad y baja actividad colectiva."
-            confidence = "Media"
-        else:
-            interpretation = "MÍNIMA excitabilidad. Periodo de calma y recogimiento social."
-            confidence = "Alta"
+        if pred >= 8: interp, conf = "ALTA excitabilidad. Probables eventos de masas.", "Alta"
+        elif pred >= 6: interp, conf = "MODERADA. Condiciones para actividad social elevada.", "Media"
+        elif pred >= 4: interp, conf = "BAJA. Periodo de estabilidad.", "Media"
+        else: interp, conf = "MÍNIMA. Calma y recogimiento social.", "Alta"
         
         return {
-            "predicted_excitability": round(prediction, 2),
-            "confidence": confidence,
-            "input_data": {
-                "sunspots": data.sunspots,
-                "solar_wind": data.solar_wind,
-                "kp_index": data.kp_index,
-                "flux_density": data.flux_density
-            },
-            "model_info": {
-                "name": metrics['best_model'],
-                "r2_score": metrics['r2_score'],
-                "mae": metrics['mae'],
-                "feature_importance": metrics.get('feature_importance', {})
-            },
-            "interpretation": interpretation
+            "predicted_excitability": round(pred, 2),
+            "confidence": conf,
+            "interpretation": interp,
+            "model_info": {"type": model_data['model_type'], "r2": metrics['r2'], "features": model_data['features']}
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/health")
 async def health():
-    return {"status": "healthy", "model": metrics['best_model']}
+    return {"status": "healthy", "model": model_data['model_type']}

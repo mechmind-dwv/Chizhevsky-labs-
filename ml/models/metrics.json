@@ -1,0 +1,12 @@
+{
+  "best_model": "LinearRegression",
+  "r2_score": 0.7115811933930184,
+  "mae": 0.27746392096760275,
+  "rmse": 0.32316628826718313,
+  "feature_importance": {
+    "kp_index": 0.45,
+    "flux_density": 0.25,
+    "sunspots": 0.2,
+    "solar_wind": 0.1
+  }
+}

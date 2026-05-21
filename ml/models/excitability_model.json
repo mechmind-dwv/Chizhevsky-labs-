@@ -1,0 +1,38 @@
+{
+  "model_type": "LinearRegressor",
+  "model": {
+    "weights": [
+      0.41646371875788835,
+      0.29280197173761935,
+      0.1257518062733682,
+      0.3189307668479945
+    ],
+    "bias": 8.107499984889596
+  },
+  "scaler": {
+    "mean": [
+      135.575,
+      499.625,
+      6.175,
+      162.25
+    ],
+    "std": [
+      44.08848347357845,
+      89.53621823038988,
+      2.488850136107034,
+      33.22254505603085
+    ]
+  },
+  "metrics": {
+    "mae": 0.27746392096760275,
+    "r2": 0.7115811933930184,
+    "rmse": 0.32316628826718313
+  },
+  "features": [
+    "sunspots",
+    "solar_wind",
+    "kp_index",
+    "flux_density"
+  ],
+  "description": "Modelo de Excitabilidad Biol\u00f3gica basado en Chizhevsky (1924)"
+}
