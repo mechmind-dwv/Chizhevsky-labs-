@@ -3,11 +3,10 @@
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)]()
 [![Version](https://img.shields.io/badge/version-1.0.0--beta-gold.svg)]()
-[![Phase](https://img.shields.io/badge/phase-Moscú-red.svg)]()
 
 > "La vida en la Tierra es el resultado de la dinámica del cosmos." — Alexander L. Chizhevsky (1897-1964)
 
-**Chizhevsky Labs** es una plataforma avanzada de inteligencia biológica y heliobiología que resucita y digitaliza las cuatro disciplinas fundamentales diseñadas por el científico soviético Alexander Chizhevsky.
+**Chizhevsky Labs** es una plataforma avanzada de inteligencia biológica cuántica y heliobiología que resucita y digitaliza las cuatro disciplinas fundamentales diseñadas por el genio e investigador soviético Alexander Chizhevsky. La aplicación monitoriza de forma predictiva los efectos del clima espacial (Space Weather) sobre la biosfera y el tejido social humano.
 
 ---
 
@@ -17,99 +16,24 @@
 - Docker y Docker Compose instalados globalmente.
 - Node.js v20 o superior (en caso de ejecución nativa).
 
-### Despliegue Mediante Docker (Stack Completo — Fase Moscú)
+### Despliegue Mediante Docker (Stack Completo)
+Para levantar el ecosistema completo (Frontend en React, Servidor TimescaleDB de series de tiempo e infraestructura de red con variables de entorno precargadas) ejecuta el siguiente comando en la raíz del repositorio:
 
 ```bash
-docker compose up --build
+docker-compose up --build
 ```
 
-Esto levanta:
+Una vez finalizado el proceso de orquestación, abre tu navegador en:
+👉 http://localhost:5173
 
-· Frontend React + TypeScript + Tailwind: http://localhost:5173
-· Backend FastAPI + Python 3.12: http://localhost:8000
-· API Docs Swagger: http://localhost:8000/docs
-· TimescaleDB PostgreSQL + series temporales: localhost:5432
+🛠️ Arquitectura Técnica de la Plataforma
 
----
+· Frontend: React.js con TypeScript, empaquetado ultra-rápido mediante Vite y estilizado industrial Constructivista usando Tailwind CSS.
+· Base de Datos de Tiempo Real: PostgreSQL + TimescaleDB para ingesta paralela de series cronológicas de viento solar.
+· APIs de Referencia: Integración modular con el NOAA Space Weather Prediction Center.
 
-🛠️ Arquitectura Técnica
+🗺️ Roadmap de Evolución Cósmica
 
-Frontend
-
-· React.js con TypeScript
-· Vite como bundler
-· Tailwind CSS con tema cósmico
-· Lucide React para iconografía
-
-Backend (Fase Moscú)
-
-· FastAPI — API REST asíncrona
-· SQLAlchemy + asyncpg — ORM para PostgreSQL
-· TimescaleDB — Base de datos de series temporales
-· NOAA SWPC — Datos solares en tiempo real
-· httpx — Cliente HTTP asíncrono
-
-APIs Disponibles
-
-Endpoint Método Descripción
-/api/solar/current GET Métricas solares NOAA en tiempo real
-/api/solar/historical GET 50 eventos históricos de Chizhevsky
-/api/excitability/ POST Calculadora de Excitabilidad Biológica
-/api/aerion/simulate GET Simulador de aero-ionización
-/docs GET Documentación Swagger/OpenAPI
-/health GET Health check
-
----
-
-🧪 Cálculo del Índice de Excitabilidad Biológica
-
-I_{eb} = \left(\frac{Kp}{9} \times 5 \times \alpha_{crono}\right) + (mood \times 0.3)
-
-Donde:
-
-· Kp: Índice planetario de perturbación geomagnética (0-9)
-· α_crono: Factor de susceptibilidad (Lark=0.9, Intermediate=1.0, Owl=1.2)
-· mood: Estado de ánimo subjetivo (1-10)
-
-Referencia: Chizhevsky, A.L. (1924) "Factores Físicos del Proceso Histórico"
-
----
-
-📊 Módulos
-
-Módulo Estado Descripción
-HELIOS ✅ Operativo Monitoreo solar, KPIs, calculadora de excitabilidad
-AERION ✅ Operativo Simulador de aero-ionización con 3 modos
-ASTROVIR 🔄 En desarrollo Vigilancia epidemiológica cósmica
-CHRONOS ✅ Operativo Reloj biológico tricapa, ventanas de excitabilidad
-
----
-
-🗺️ Roadmap
-
-1. Fase Kaluga (Completada) ✅ — Frontend interactivo, calculadoras estáticas
-2. Fase Moscú (Actual) 🔄 — Backend FastAPI, TimescaleDB, datos NOAA reales
-3. Fase Cosmos (Futuro) 🌌 — IoT para ionizadores físicos, predicción social ética
-
----
-
-📚 Documentación
-
-· Bases Científicas
-· Compromiso Ético
-· API Docs
-
----
-
-⚖️ Ética y Legado
-
-Chizhevsky fue arrestado en 1942 por negarse a retractarse de sus teorías. Pasó 8 años en el Gulag de Karaganda. En Chizhevsky Labs:
-
-1. Transparencia total: Algoritmos auditables y open-source
-2. No determinismo: El Sol amplifica, no causa
-3. Rehabilitación científica: 1% de ingresos al Chizhevsky Science Center en Kaluga
-
----
-
-"Talló nuevos caminos y enfoques para la vasta extensión de campos inexplorados."
-— International Journal of Biometeorology, obituario de Chizhevsky
+1. Fase Kaluga (Actual): Lanzamiento del Core del Frontend interactivo, calculadoras estáticas e índices simulados de afectación cortical.
+2. Fase Moscú: Integración de los modelos predictivos en Python (FastAPI) para el procesamiento bio-geomagnético en vivo.
+3. Fase Cosmos: Pasarela IoT completa para control de aero-ionizadores físicos en tiempo real.
