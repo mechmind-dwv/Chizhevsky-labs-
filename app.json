@@ -1,0 +1,67 @@
+{
+  "expo": {
+    "name": "Chizhevsky Labs",
+    "slug": "chizhevsky-labs",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icons/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/icons/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0a0a0f"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.chizhevskylabs.cosmic",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Para personalizar datos geomagnéticos locales.",
+        "NSLocationAlwaysUsageDescription": "Para alertas de tormentas solares en background."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icons/adaptive-icon.png",
+        "backgroundColor": "#0a0a0f"
+      },
+      "package": "com.chizhevskylabs.cosmic",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "POST_NOTIFICATIONS"
+      ],
+      "versionCode": 1
+    },
+    "web": {
+      "favicon": "./assets/icons/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-font",
+      "expo-splash-screen",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icons/notification-icon.png",
+          "color": "#FFD700",
+          "sounds": []
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Para alertas de tormentas solares."
+        }
+      ]
+    ],
+    "extra": {
+      "noaaApiBase": "https://services.swpc.noaa.gov",
+      "eas": {
+        "projectId": "YOUR_EAS_PROJECT_ID"
+      }
+    }
+  }
+}
